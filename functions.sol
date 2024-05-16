@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/FunctionsClient.sol";
+import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
-import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
+import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 
 contract FunctionsConsumerExample is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
@@ -11,6 +11,7 @@ contract FunctionsConsumerExample is FunctionsClient, ConfirmedOwner {
     bytes32 public s_lastRequestId;
     bytes public s_lastResponse;
     bytes public s_lastError;
+
     struct Article {
         bytes url;
         uint256 publishedDate;
@@ -53,7 +54,7 @@ contract FunctionsConsumerExample is FunctionsClient, ConfirmedOwner {
 
     function sendRequest() external onlyOwner returns (bytes32 requestId) {
         FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavascript(source);
+        req.initializeRequestForInlineJavaScript(source);
 
         s_lastRequestId = _sendRequest(
             req.encodeCBOR(),
@@ -73,10 +74,21 @@ contract FunctionsConsumerExample is FunctionsClient, ConfirmedOwner {
         if (s_lastRequestId != requestId) {
             revert UnexpectedRequestID(requestId);
         }
+        articles.push(Article(response, block.timestamp));
+        emit ArticleAdded(response, block.timestamp);
 
         s_lastResponse = response;
 
         s_lastError = err;
         emit Response(requestId, s_lastResponse, s_lastError);
+    }
+
+    function getAllArticles() public view returns (string[] memory) {
+        string[] memory allArticles = new string[](articles.length);
+        for (uint i = 0; i < articles.length; i++) {
+            allArticles[i] = string(articles[i].url);
+        }
+
+        return allArticles;
     }
 }
